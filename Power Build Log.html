@@ -1,0 +1,627 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Power Build Log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Hanken+Grotesk:wght@400;500;600&display=swap">
+<style>
+/* Layout: one narrow column. A sticky header holds the week switcher and seven day tabs; below it the chosen day's exercise cards with a set-by-set grid (kg, reps, done); a rest timer docks to the bottom edge. */
+:root{
+  --bg:#EDF0F4;
+  --surface:#FFFFFF;
+  --field:#F4F6F9;
+  --ink:#141A23;
+  --muted:#576274;
+  --line:#D3D9E2;
+  --accent:#1E5BC6;
+  --accent-ink:#FFFFFF;
+  --done:#1D8A4F;
+  --done-ink:#FFFFFF;
+  --done-bg:#E2F3EA;
+  --up:#7A4A00;
+  --up-bg:#FFEFD0;
+  --display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"Hanken Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1319;
+    --surface:#181E27;
+    --field:#10151C;
+    --ink:#E8ECF2;
+    --muted:#93A0B2;
+    --line:#2A3340;
+    --accent:#6FA3FF;
+    --accent-ink:#0B1220;
+    --done:#4CC27F;
+    --done-ink:#0A1A10;
+    --done-bg:#15301F;
+    --up:#F2B24C;
+    --up-bg:#3A2C10;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1319;
+  --surface:#181E27;
+  --field:#10151C;
+  --ink:#E8ECF2;
+  --muted:#93A0B2;
+  --line:#2A3340;
+  --accent:#6FA3FF;
+  --accent-ink:#0B1220;
+  --done:#4CC27F;
+  --done-ink:#0A1A10;
+  --done-bg:#15301F;
+  --up:#F2B24C;
+  --up-bg:#3A2C10;
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 var(--body);-webkit-text-size-adjust:100%}
+h1,h2,h3,p,ul{margin:0}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.wrap{max-width:640px;margin:0 auto;padding-inline:16px;padding-block:0 150px}
+.eyebrow{font-size:11px;line-height:1.2;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+
+/* header */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:12px 10px;border-bottom:1px solid var(--line);display:grid;gap:10px}
+.brand{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand h1{font:700 30px/1 var(--display);letter-spacing:.03em;text-transform:uppercase}
+.sync{font-size:12px;color:var(--muted)}
+.week{display:grid;grid-template-columns:40px minmax(0,1fr) 40px;gap:8px;align-items:center}
+.nav{height:40px;border:1px solid var(--line);border-radius:8px;background:var(--surface);font:600 22px/1 var(--display);display:grid;place-items:center;padding:0}
+.week-mid{text-align:center;min-width:0}
+#weekLabel{font:600 18px/1.2 var(--display);letter-spacing:.03em}
+#weekCount{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.tabs{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.tab{position:relative;display:grid;gap:6px;justify-items:center;align-content:center;min-height:48px;padding:7px 2px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
+.tn{font:600 15px/1 var(--display);letter-spacing:.06em;text-transform:uppercase}
+.tm{display:block;width:70%;height:3px;border-radius:2px;background:var(--line);overflow:hidden}
+.tm b{display:block;height:100%;width:0;background:var(--done)}
+.tr{font-size:10px;line-height:1;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.tab.off .tn{color:var(--muted)}
+.tab.today::after{content:"";position:absolute;top:4px;right:4px;width:5px;height:5px;border-radius:50%;background:var(--accent)}
+.tab.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.tab.on .tn,.tab.on .tr{color:var(--accent-ink)}
+.tab.on .tm{background:rgba(255,255,255,.35)}
+.tab.on.today::after{background:var(--accent-ink)}
+
+/* day */
+main{display:grid;gap:14px;padding-top:16px}
+.dayhead{display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
+.dayhead h2{font:700 34px/1 var(--display);letter-spacing:.02em;text-transform:uppercase;margin-top:6px}
+.dayprog{font-size:13px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.dayprog b{font:700 26px/1 var(--display);color:var(--ink)}
+.bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.bar b{display:block;height:100%;width:0;background:var(--done)}
+.warm{font-size:13px;color:var(--muted);max-width:60ch}
+
+.ex{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 14px 12px;display:grid;gap:10px;min-width:0}
+.exh{display:flex;justify-content:space-between;align-items:baseline;gap:4px 12px;flex-wrap:wrap}
+.exh h3{font:600 22px/1.1 var(--display);letter-spacing:.01em;text-wrap:balance}
+.target{font:600 16px/1 var(--display);letter-spacing:.05em;color:var(--muted);white-space:nowrap}
+.last{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.sets{display:grid;gap:4px}
+.sh,.row{display:grid;grid-template-columns:2rem minmax(0,1fr) minmax(0,1fr) 44px;gap:8px;align-items:center}
+.sh{padding-inline:4px}
+.sh span{text-align:center}
+.row{padding:4px;border-radius:8px}
+.row.done{background:var(--done-bg)}
+.n{font:600 19px/1 var(--display);color:var(--muted);text-align:center}
+.fld{height:44px;width:100%;min-width:0;border:1px solid var(--line);border-radius:8px;background:var(--field);text-align:center;font:600 22px/1 var(--display);font-variant-numeric:tabular-nums;padding:0 4px}
+.fld::placeholder{color:var(--muted);opacity:.6;font-weight:500}
+.chk{width:44px;height:44px;border:1.5px solid var(--line);border-radius:8px;background:var(--surface);color:var(--muted);display:grid;place-items:center;padding:0}
+.chk[aria-pressed="true"]{background:var(--done);border-color:var(--done);color:var(--done-ink)}
+.chk svg{width:22px;height:22px}
+.up{display:flex;align-items:center;gap:8px;background:var(--up-bg);color:var(--up);border-radius:8px;padding:8px 10px;font-size:13px;font-weight:600}
+.up svg{flex:none;width:16px;height:16px}
+
+.notes{display:grid;gap:6px}
+textarea{width:100%;min-height:76px;resize:vertical;border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:10px 12px;font-size:15px;line-height:1.4}
+.ghost{justify-self:start;border:1px solid var(--line);background:transparent;border-radius:8px;padding:10px 14px;font-weight:600;font-size:14px;color:var(--muted);min-height:44px}
+
+.restday{display:grid;gap:10px;padding-block:8px}
+.restday h2{font:700 34px/1 var(--display);letter-spacing:.02em;text-transform:uppercase}
+.restday p{max-width:56ch}
+
+.rules{margin-top:22px;border-top:1px solid var(--line);padding-top:6px}
+.rules summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font:600 16px/1 var(--display);letter-spacing:.06em;text-transform:uppercase}
+.rules ul{padding-left:18px;display:grid;gap:8px;max-width:60ch;color:var(--muted);font-size:14px}
+
+/* rest timer */
+.rest{position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--surface);border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px))}
+.rest-in{max-width:640px;margin:0 auto;display:flex;align-items:center;gap:6px 12px;flex-wrap:wrap}
+.rest-time{font:700 38px/1 var(--display);color:var(--accent);font-variant-numeric:tabular-nums;min-width:3.4ch}
+.rest-txt{flex:1 1 140px;min-width:0}
+.rest-txt b{display:block;font-weight:600;font-size:14px;overflow-wrap:anywhere}
+.rest-txt span{font-size:12px;color:var(--muted)}
+.rest-btns{display:flex;gap:6px}
+.rest-btns button{min-height:44px;min-width:52px;padding:0 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);font-weight:600;font-size:14px}
+
+@media (prefers-reduced-motion:no-preference){
+  .bar b,.tm b{transition:width .25s ease}
+}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>Power Build</h1>
+      <span class="sync" id="sync" role="status">Saved on this device</span>
+    </div>
+    <div class="week">
+      <button type="button" class="nav" id="prev" aria-label="Previous week">&#8249;</button>
+      <div class="week-mid">
+        <div id="weekLabel"></div>
+        <div id="weekCount"></div>
+      </div>
+      <button type="button" class="nav" id="next" aria-label="Next week">&#8250;</button>
+    </div>
+    <nav class="tabs" id="tabs" aria-label="Days of the week"></nav>
+  </header>
+
+  <main id="panel"></main>
+
+  <details class="rules">
+    <summary>Training rules</summary>
+    <ul>
+      <li>Warm up for 5&ndash;10 minutes and do lighter practice sets before the first major exercise.</li>
+      <li>Use controlled technique and stop each set with about 2&ndash;3 good reps left. Do not train to failure.</li>
+      <li>Rest 2&ndash;3 minutes between bigger compound exercises and 1&ndash;2 minutes between isolation exercises.</li>
+      <li>Increase weight gradually, only when you can complete the top of the rep range with clean form.</li>
+      <li>Learn unfamiliar free-weight movements with a qualified trainer. Avoid maximal lifts.</li>
+      <li>Eat regular meals, hydrate and sleep enough. Reduce volume if you are unusually fatigued.</li>
+    </ul>
+  </details>
+</div>
+
+<div class="rest" id="rest" hidden>
+  <div class="rest-in">
+    <div class="rest-time" id="restTime" aria-live="off">2:30</div>
+    <div class="rest-txt"><b id="restName"></b><span id="restSub"></span></div>
+    <div class="rest-btns">
+      <button type="button" id="restMinus" aria-label="Subtract 15 seconds">&minus;15s</button>
+      <button type="button" id="restPlus" aria-label="Add 15 seconds">+15s</button>
+      <button type="button" id="restSkip">Skip</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------- plan (from the Power Build PDF) ---------- */
+  // [name, sets, repsLow, repsHigh, type: c = compound, i = isolation]
+  var DAYS = [
+    { key: "mon", short: "Mon", name: "Monday", title: "Upper Strength", ex: [
+      ["Machine Chest Press", 3, 6, 10, "c"], ["Lat Pulldown", 3, 8, 10, "c"],
+      ["Seated Cable Row", 2, 8, 12, "c"], ["Shoulder Press Machine", 2, 8, 10, "c"],
+      ["Triceps Pushdown", 2, 10, 12, "i"] ] },
+    { key: "tue", short: "Tue", name: "Tuesday", title: "Lower Strength", ex: [
+      ["Leg Press", 3, 8, 10, "c"], ["Dumbbell Romanian Deadlift", 2, 8, 10, "c"],
+      ["Leg Curl Machine", 3, 10, 12, "i"], ["Calf Raises", 2, 12, 15, "i"] ] },
+    { key: "wed", short: "Wed", name: "Wednesday", title: "Rest day", ex: null },
+    { key: "thu", short: "Thu", name: "Thursday", title: "Push", ex: [
+      ["Incline Dumbbell Press", 3, 8, 10, "c"], ["Machine Chest Press", 2, 8, 12, "c"],
+      ["Lateral Raises", 3, 12, 15, "i"], ["Pec Deck", 2, 10, 12, "i"],
+      ["Triceps Pushdown", 2, 10, 12, "i"] ] },
+    { key: "fri", short: "Fri", name: "Friday", title: "Pull", ex: [
+      ["Lat Pulldown", 3, 8, 10, "c"], ["Chest-Supported Dumbbell Row", 3, 8, 10, "c"],
+      ["Face Pulls", 2, 12, 15, "i"], ["Dumbbell Curls", 2, 10, 12, "i"],
+      ["Hammer Curls", 2, 10, 12, "i"] ] },
+    { key: "sat", short: "Sat", name: "Saturday", title: "Legs", ex: [
+      ["Goblet Squat", 3, 8, 10, "c"], ["Leg Extension", 2, 10, 12, "i"],
+      ["Leg Curl Machine", 2, 10, 12, "i"], ["Calf Raises", 2, 12, 15, "i"] ] },
+    { key: "sun", short: "Sun", name: "Sunday", title: "Rest day", ex: null }
+  ];
+  var EX = {};
+  var WEEK_TOTAL = 0;
+  DAYS.forEach(function (d) {
+    if (!d.ex) { d.rest = true; d.total = 0; return; }
+    d.ex = d.ex.map(function (a, i) {
+      var o = { id: d.key + "-" + i, name: a[0], sets: a[1], lo: a[2], hi: a[3], type: a[4], day: d.key };
+      EX[o.id] = o;
+      return o;
+    });
+    d.total = d.ex.reduce(function (s, e) { return s + e.sets; }, 0);
+    WEEK_TOTAL += d.total;
+  });
+
+  /* ---------- dates ---------- */
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function toKey(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  function parseKey(k) { var p = k.split("-").map(Number); return new Date(p[0], p[1] - 1, p[2]); }
+  function mondayOf(date) {
+    var d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+    return d;
+  }
+  function addWeeks(k, n) { var d = parseKey(k); d.setDate(d.getDate() + 7 * n); return toKey(d); }
+  function ordinal(k, i) { var p = k.split("-").map(Number); return Math.round(Date.UTC(p[0], p[1] - 1, p[2]) / 864e5) + i; }
+  function fmt(d) { return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" }); }
+  function range(k) { var s = parseKey(k), e = parseKey(k); e.setDate(e.getDate() + 6); return fmt(s) + " – " + fmt(e); }
+
+  var NOW = new Date();
+  var TODAY_WK = toKey(mondayOf(NOW));
+  var TODAY_IDX = (NOW.getDay() + 6) % 7;
+  var sel = { wk: TODAY_WK, day: TODAY_IDX };
+
+  /* ---------- state ---------- */
+  // state.weeks["2026-10-12"] = { days: { mon: { note: "", sets: { "mon-0": [ {w, r, d}, ... ] } } } }
+  var LS = "power-build-log-v1";
+  var state = { weeks: {} };
+  try {
+    var raw = localStorage.getItem(LS);
+    if (raw) { var parsed = JSON.parse(raw); if (parsed && typeof parsed.weeks === "object" && parsed.weeks) state = parsed; }
+  } catch (e) { /* storage unavailable */ }
+
+  function $(id) { return document.getElementById(id); }
+  var panel = $("panel"), tabs = $("tabs");
+  var lastMap = {};
+
+  function daysOf(wk) { return (state.weeks[wk] && state.weeks[wk].days) || {}; }
+  function blank() { return { w: "", r: "", d: false }; }
+
+  function readSets(ex) {
+    var D = daysOf(sel.wk)[ex.day];
+    var a = (D && D.sets && D.sets[ex.id]) || [];
+    var out = [];
+    for (var i = 0; i < ex.sets; i++) out.push(a[i] || blank());
+    return out;
+  }
+  function ensureDay(dayKey) {
+    var W = state.weeks[sel.wk] || (state.weeks[sel.wk] = { days: {} });
+    if (!W.days) W.days = {};
+    var D = W.days[dayKey] || (W.days[dayKey] = { note: "", sets: {} });
+    if (!D.sets) D.sets = {};
+    return D;
+  }
+  function ensureSets(ex) {
+    var D = ensureDay(ex.day);
+    var arr = D.sets[ex.id] || (D.sets[ex.id] = []);
+    while (arr.length < ex.sets) arr.push(blank());
+    return arr;
+  }
+  function countDay(wk, di) {
+    var d = DAYS[di];
+    if (d.rest) return { done: 0, total: 0 };
+    var D = daysOf(wk)[d.key], done = 0;
+    if (D && D.sets) {
+      d.ex.forEach(function (e) {
+        var a = D.sets[e.id] || [];
+        for (var i = 0; i < e.sets; i++) if (a[i] && a[i].d) done++;
+      });
+    }
+    return { done: done, total: d.total };
+  }
+  function lastFor(name) {
+    var cur = ordinal(sel.wk, sel.day), best = -1, bestSets = null;
+    Object.keys(state.weeks).forEach(function (wk) {
+      var days = daysOf(wk);
+      DAYS.forEach(function (day, di) {
+        var D = days[day.key];
+        if (!D || !D.sets || !day.ex) return;
+        var o = ordinal(wk, di);
+        if (o >= cur || o <= best) return;
+        day.ex.forEach(function (ex) {
+          if (ex.name !== name) return;
+          var a = D.sets[ex.id];
+          if (a && a.some(function (s) { return s && (s.w || s.r); })) { best = o; bestSets = a; }
+        });
+      });
+    });
+    return bestSets;
+  }
+  function hasData(W) {
+    var D = (W && W.days) || {};
+    return Object.keys(D).some(function (k) {
+      var x = D[k] || {};
+      if (x.note) return true;
+      return Object.keys(x.sets || {}).some(function (id) {
+        return (x.sets[id] || []).some(function (s) { return s && (s.w || s.r || s.d); });
+      });
+    });
+  }
+
+  /* ---------- saving ---------- */
+  var store = null, dirty = new Set(), saveTimer = null, chain = Promise.resolve();
+  var SYNC = {
+    device: "Saved on this device",
+    account: "Saved to your account",
+    saving: "Saving…",
+    error: "Not synced. Kept on this device."
+  };
+  function setSync(m) { $("sync").textContent = SYNC[m]; }
+  function persistLocal() { try { localStorage.setItem(LS, JSON.stringify(state)); } catch (e) { /* ignore */ } }
+  function scheduleSave(wk) {
+    dirty.add(wk);
+    persistLocal();
+    setSync("saving");
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(flush, 700);
+  }
+  function flush() {
+    chain = chain.then(function () {
+      if (!store) { setSync("device"); return; }
+      var keys = Array.from(dirty);
+      dirty.clear();
+      if (!keys.length) { setSync("account"); return; }
+      return keys.reduce(function (p, k) {
+        return p.then(function () {
+          var W = state.weeks[k];
+          if (!W) return;
+          return store.col.doc("w-" + k).set({ weekStart: k, days: W.days || {} });
+        });
+      }, Promise.resolve()).then(function () { setSync("account"); }, function () {
+        keys.forEach(function (k) { dirty.add(k); });
+        setSync("error");
+      });
+    });
+    return chain;
+  }
+  function changed() { refreshDerived(); scheduleSave(sel.wk); }
+
+  /* ---------- rendering ---------- */
+  var CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+  var ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V6M6 11.5l6-6 6 6"/></svg>';
+
+  function buildTabs() {
+    tabs.innerHTML = "";
+    DAYS.forEach(function (d, i) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "tab" + (d.rest ? " off" : "");
+      b.id = "tab-" + i;
+      b.dataset.i = i;
+      b.setAttribute("aria-label", d.name + ", " + d.title);
+      b.innerHTML = '<span class="tn">' + d.short + "</span>" + (d.rest ? '<span class="tr">rest</span>' : '<span class="tm"><b></b></span>');
+      tabs.appendChild(b);
+    });
+  }
+
+  function cardHtml(e) {
+    var rows = "";
+    for (var i = 0; i < e.sets; i++) {
+      var p = e.id + "-" + i;
+      rows += '<div class="row" id="' + p + '-row">' +
+        '<span class="n">' + (i + 1) + "</span>" +
+        '<input class="fld w" id="' + p + '-w" type="text" inputmode="decimal" maxlength="6" autocomplete="off" aria-label="' + e.name + ' set ' + (i + 1) + ' weight in kilograms">' +
+        '<input class="fld r" id="' + p + '-r" type="text" inputmode="numeric" maxlength="3" autocomplete="off" aria-label="' + e.name + ' set ' + (i + 1) + ' reps">' +
+        '<button type="button" class="chk" id="' + p + '-chk" aria-pressed="false" aria-label="Mark set ' + (i + 1) + ' done">' + CHECK + "</button></div>";
+    }
+    return '<section class="ex" id="ex-' + e.id + '" data-ex="' + e.id + '">' +
+      '<div class="exh"><h3>' + e.name + '</h3><span class="target">' + e.sets + " × " + e.lo + "–" + e.hi + "</span></div>" +
+      '<p class="last" id="' + e.id + '-last" hidden></p>' +
+      '<div class="sets"><div class="sh eyebrow"><span>Set</span><span>kg</span><span>Reps</span><span></span></div>' + rows + "</div>" +
+      '<p class="up" id="' + e.id + '-up" hidden>' + ARROW + "<span>Top of the range on every set. Add a little weight next time.</span></p>" +
+      "</section>";
+  }
+
+  function renderPanel() {
+    var d = DAYS[sel.day];
+    var isToday = sel.wk === TODAY_WK && sel.day === TODAY_IDX;
+    var eyebrow = d.name + (isToday ? " · Today" : "");
+    $("weekLabel").textContent = (sel.wk === TODAY_WK ? "This week · " : "") + range(sel.wk);
+    lastMap = {};
+
+    if (d.rest) {
+      panel.innerHTML = '<section class="restday"><p class="eyebrow">' + eyebrow + "</p><h2>Rest day</h2>" +
+        "<p>Recover today. Eat regular meals, drink enough water and get a full night of sleep. If you feel unusually tired this week, cut the volume on your next session.</p></section>";
+      refreshDerived();
+      return;
+    }
+
+    var html = '<div class="dayhead"><div><p class="eyebrow">' + eyebrow + "</p><h2>" + d.title + '</h2></div>' +
+      '<p class="dayprog"><b id="dayDone">0</b> / ' + d.total + " sets</p></div>" +
+      '<div class="bar" aria-hidden="true"><b id="dayBar"></b></div>' +
+      '<p class="warm">Warm up for 5–10 minutes and do a few lighter practice sets before the first big exercise. Stop each set with 2–3 good reps left.</p>';
+    d.ex.forEach(function (e) { html += cardHtml(e); });
+    html += '<div class="notes"><label class="eyebrow" for="note">Session notes</label>' +
+      '<textarea id="note" rows="3" placeholder="Seat height, machine settings, how it felt"></textarea></div>' +
+      '<button type="button" class="ghost" id="clear">Clear this day</button>';
+    panel.innerHTML = html;
+
+    var D = daysOf(sel.wk)[d.key];
+    $("note").value = (D && D.note) || "";
+
+    d.ex.forEach(function (e) {
+      var last = lastFor(e.name);
+      lastMap[e.id] = last;
+      var sets = readSets(e);
+      for (var i = 0; i < e.sets; i++) {
+        var p = e.id + "-" + i, w = $(p + "-w"), r = $(p + "-r");
+        w.value = sets[i].w || "";
+        r.value = sets[i].r || "";
+        w.placeholder = (last && last[i] && last[i].w) || "kg";
+        r.placeholder = (last && last[i] && last[i].r) || (e.lo + "–" + e.hi);
+      }
+      if (last) {
+        var txt = last.slice(0, e.sets).filter(function (s) { return s && (s.w || s.r); })
+          .map(function (s) { return (s.w || "–") + " × " + (s.r || "–"); }).join("   ");
+        var el = $(e.id + "-last");
+        if (txt) { el.textContent = "Last time: " + txt; el.hidden = false; }
+      }
+    });
+    refreshDerived();
+  }
+
+  function refreshDerived() {
+    var d = DAYS[sel.day];
+    if (!d.rest) {
+      d.ex.forEach(function (e) {
+        var sets = readSets(e), all = true, top = true;
+        sets.forEach(function (s, i) {
+          var row = $(e.id + "-" + i + "-row");
+          if (!row) return;
+          row.classList.toggle("done", !!s.d);
+          row.querySelector(".chk").setAttribute("aria-pressed", s.d ? "true" : "false");
+          if (!s.d) all = false;
+          if (!(s.d && parseFloat(s.w) > 0 && parseInt(s.r, 10) >= e.hi)) top = false;
+        });
+        var up = $(e.id + "-up");
+        if (up) up.hidden = !(all && top);
+      });
+      var c = countDay(sel.wk, sel.day);
+      if ($("dayDone")) $("dayDone").textContent = c.done;
+      if ($("dayBar")) $("dayBar").style.width = (c.total ? (c.done / c.total) * 100 : 0) + "%";
+    }
+    var wkDone = 0;
+    DAYS.forEach(function (dd, i) {
+      var t = $("tab-" + i);
+      if (!t) return;
+      var cc = countDay(sel.wk, i);
+      wkDone += cc.done;
+      if (!dd.rest) t.querySelector("b").style.width = (cc.total ? (cc.done / cc.total) * 100 : 0) + "%";
+      t.classList.toggle("on", i === sel.day);
+      t.classList.toggle("today", sel.wk === TODAY_WK && i === TODAY_IDX);
+      if (i === sel.day) t.setAttribute("aria-current", "true"); else t.removeAttribute("aria-current");
+    });
+    $("weekCount").textContent = wkDone + " of " + WEEK_TOTAL + " sets done";
+  }
+
+  /* ---------- rest timer ---------- */
+  var restEnd = 0, restTimer = null, restType = "c";
+  function mmss(s) { return Math.floor(s / 60) + ":" + pad(s % 60); }
+  function restTick() {
+    var left = Math.max(0, Math.ceil((restEnd - Date.now()) / 1000));
+    $("restTime").textContent = mmss(left);
+    if (left === 0) {
+      clearInterval(restTimer); restTimer = null;
+      $("restSub").textContent = "Rest is over. Start your next set.";
+      try { if (navigator.vibrate) navigator.vibrate(200); } catch (e) { /* ignore */ }
+    }
+  }
+  function restSubText() { return restType === "c" ? "Compound lift: rest 2–3 min" : "Isolation: rest 1–2 min"; }
+  function startRest(ex) {
+    restType = ex.type;
+    restEnd = Date.now() + (ex.type === "c" ? 150 : 90) * 1000;
+    $("restName").textContent = "Rest · " + ex.name;
+    $("restSub").textContent = restSubText();
+    $("rest").hidden = false;
+    clearInterval(restTimer);
+    restTick();
+    restTimer = setInterval(restTick, 250);
+  }
+  function adjustRest(sec) {
+    restEnd = Math.max(Date.now(), restEnd) + sec * 1000;
+    $("restSub").textContent = restSubText();
+    if (!restTimer) restTimer = setInterval(restTick, 250);
+    restTick();
+  }
+  $("restPlus").addEventListener("click", function () { adjustRest(15); });
+  $("restMinus").addEventListener("click", function () { adjustRest(-15); });
+  $("restSkip").addEventListener("click", function () {
+    clearInterval(restTimer); restTimer = null; $("rest").hidden = true;
+  });
+
+  /* ---------- events ---------- */
+  tabs.addEventListener("click", function (ev) {
+    var b = ev.target.closest(".tab");
+    if (!b) return;
+    sel.day = +b.dataset.i;
+    renderPanel();
+    window.scrollTo(0, 0);
+  });
+  $("prev").addEventListener("click", function () { sel.wk = addWeeks(sel.wk, -1); renderPanel(); });
+  $("next").addEventListener("click", function () { sel.wk = addWeeks(sel.wk, 1); renderPanel(); });
+
+  panel.addEventListener("input", function (ev) {
+    var t = ev.target;
+    if (t.id === "note") {
+      ensureDay(DAYS[sel.day].key).note = t.value;
+      scheduleSave(sel.wk);
+      return;
+    }
+    var isW = t.classList.contains("w"), isR = t.classList.contains("r");
+    if (!isW && !isR) return;
+    var clean = isW ? t.value.replace(/[^0-9.]/g, "") : t.value.replace(/[^0-9]/g, "");
+    if (clean !== t.value) t.value = clean;
+    var row = t.closest(".row"), ex = EX[row.closest(".ex").dataset.ex];
+    var i = parseInt(row.id.split("-")[2], 10);
+    ensureSets(ex)[i][isW ? "w" : "r"] = clean;
+    changed();
+  });
+
+  var clearArmed = null;
+  panel.addEventListener("click", function (ev) {
+    var chk = ev.target.closest(".chk");
+    if (chk) {
+      var row = chk.closest(".row"), ex = EX[row.closest(".ex").dataset.ex];
+      var i = parseInt(row.id.split("-")[2], 10);
+      var arr = ensureSets(ex), s = arr[i];
+      if (!s.d) {
+        var last = lastMap[ex.id] && lastMap[ex.id][i];
+        if (!s.w && last && last.w) { s.w = last.w; $(ex.id + "-" + i + "-w").value = s.w; }
+        if (!s.r && last && last.r) { s.r = last.r; $(ex.id + "-" + i + "-r").value = s.r; }
+        s.d = true;
+        startRest(ex);
+      } else {
+        s.d = false;
+      }
+      changed();
+      return;
+    }
+    var clr = ev.target.closest("#clear");
+    if (clr) {
+      if (clearArmed) {
+        clearTimeout(clearArmed); clearArmed = null;
+        var W = state.weeks[sel.wk];
+        if (W && W.days) delete W.days[DAYS[sel.day].key];
+        renderPanel();
+        scheduleSave(sel.wk);
+      } else {
+        clr.textContent = "Tap again to clear this day";
+        clearArmed = setTimeout(function () { clearArmed = null; clr.textContent = "Clear this day"; }, 3500);
+      }
+    }
+  });
+
+  /* ---------- screen stays on while logging ---------- */
+  function wake() { try { if (navigator.wakeLock) navigator.wakeLock.request("screen").catch(function () {}); } catch (e) { /* ignore */ } }
+  wake();
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") wake(); });
+
+  /* ---------- account storage (optional; falls back to this device) ---------- */
+  function connect() {
+    var c = window.claude;
+    if (!c || typeof c.use !== "function") return;
+    Promise.all([c.use("db"), c.use("user")]).then(function (r) {
+      var db = r[0], user = r[1];
+      if (!db || !user) return;
+      return user.id().then(function (id) {
+        if (!id) return;
+        var col = db.collection("data/users/" + id);
+        return col.get().then(function (snap) {
+          var remote = new Set();
+          snap.docs.forEach(function (doc) {
+            var v = doc.data();
+            if (!v || typeof v.days !== "object" || !v.days || !/^\d{4}-\d{2}-\d{2}$/.test(v.weekStart || "")) return;
+            remote.add(v.weekStart);
+            if (dirty.has(v.weekStart)) return;
+            state.weeks[v.weekStart] = { days: v.days };
+          });
+          store = { col: col };
+          Object.keys(state.weeks).forEach(function (k) {
+            if (!remote.has(k) && hasData(state.weeks[k])) dirty.add(k);
+          });
+          persistLocal();
+          renderPanel();
+          if (dirty.size) flush(); else setSync("account");
+        });
+      });
+    }).catch(function () { /* stay on this device */ });
+  }
+
+  /* ---------- go ---------- */
+  buildTabs();
+  renderPanel();
+  connect();
+})();
+</script>
+
+</body></html>
