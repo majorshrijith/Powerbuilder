@@ -1,0 +1,11 @@
+{
+  "name": "Powerbuilder",
+  "short_name": "Powerbuilder",
+  "description": "My personal fitness tracker for workouts, strength training, and progress tracking.",
+  "start_url": "/Powerbuilder/",
+  "scope": "/Powerbuilder/",
+  "display": "standalone",
+  "background_color": "#101010",
+  "theme_color": "#101010",
+  "icons": []
+}
